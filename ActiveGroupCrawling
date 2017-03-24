@@ -1,0 +1,38 @@
+# -*- coding: UTF-8 -*-                                  #该行语句是用来允许代码使用中文
+import xlwt
+from xlutils.copy import copy
+import xlrd
+from selenium import webdriver
+
+browser = webdriver.PhantomJS()                           #使用隐形浏览器来模拟网站点击能行为
+browser.get('http://www.ttbz.org.cn/tb/tb/hyttpages.jsp') 
+page = [1,2,3,3,3,3,4] 
+
+file = 'example1.xls'
+oldwb = xlrd.open_workbook(file)
+worksheet = oldwb.sheet_by_index(0)
+wb = copy(oldwb)                                                      #将已存在的xls文件复制到wb，最后再将wb保存为原文件名，以使其覆盖
+sheet = wb.get_sheet(0)                                               #打开xls的第一个sheet
+row = worksheet.nrows                                                 #得到sheet的已有数据的行数
+for k in range(0,7):                                                  #从0到6依次访问
+    content = browser.find_elements_by_xpath('//div[@class="left"]/a') #保存所有便签是div，类名class为left下的子便签a
+    content[page[k]].click()                                           #点击子标签a
+    hyd = browser.find_elements_by_xpath('//span[@class="hyd"]/a')      
+    i = 0
+    for number in hyd:
+        sheet.write(row+i,0,number.text)
+        i = i + 1
+
+    for m in range(0,i):
+         name = browser.find_elements_by_xpath('//span[@class="name"]/a')  #重复获取所有标签是因为当页面刷新时，原有的WebElement会刷新，使用原来的webelement会出错
+         name[m].click()
+         content = browser.find_elements_by_xpath('//td[@align="left"]')
+         j = 1
+         for con in content:
+            sheet.write(row+m,j,con.text)
+            j = j + 1
+         browser.back()
+         print m
+    row = row + i
+wb.save('example1.xls')
+browser.quit()
