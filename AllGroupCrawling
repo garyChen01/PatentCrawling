@@ -35,7 +35,8 @@ for iteration in range(0,23):
         position = len(content)
         for j in range(1,position):
             worksheet.write(row, j, content[j-1].text)
-        worksheet.write(row,position,content[position-1].get_attribute('href'))
+        content[position-1] = content[position-1].find_element_by_xpath('.//a')   #定位到//td[@dlign="left"]/a下
+        worksheet.write(row,position,content[position-1].get_attribute('href'))   #获取//td[@dlign="left"]/a的元素名为href的元素
         browser.back()
         print row
         row = row + 1
