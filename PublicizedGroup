@@ -1,0 +1,40 @@
+# -*- coding: UTF-8 -*-
+import xlwt
+from xlutils.copy import copy
+import xlrd
+from selenium import webdriver
+
+browser = webdriver.PhantomJS()
+browser.get('http://www.ttbz.org.cn/tb/tb/listData.jsp')
+dict = {'社会团体代号':0,'团体名称':1,'发证机关':2,'活动地域':3,'标准制定程序文件':4,'组织架构设计文件':5,
+        '知识产权管理制度':6,'标准化管理文件':7,'自我承诺声明':8}   #使用字典自动将属于该属性的元素匹配到固定位置
+file = 'PublicizedGroup.xls'
+workbook = xlwt.Workbook()
+worksheet = workbook.add_sheet('mySheet')
+
+row = 1
+
+content = browser.find_elements_by_xpath('//ul[@class="hover"]//a')
+page = len(content)
+for i in range(0,page):
+    web = browser.find_elements_by_xpath('//ul[@class="hover"]//a')
+    web[i].click()
+    content = browser.find_elements_by_xpath('//table[@width="100%"]//td')
+    position = len(content)
+    k = 0
+    for j in range(1, position):
+        con = content[j].text.encode('utf-8')   #content[j].text为'unicode'类型，无法与str类型对比，所以要将其转换为str类型
+        if dict.get(con) != None:
+            j = j + 1
+            try:                               #当href无法匹配到时会抛出异常，此时将content[j].text内容写入，否则将元素名为href的链接写入
+                href = content[j].find_element_by_xpath('.//a')
+                worksheet.write(row,k,href.get_attribute('href'))
+            except:
+                worksheet.write(row, k, content[j].text)
+            k = k + 1
+    browser.back()
+    print row
+    row = row + 1
+
+workbook.save(file)
+browser.quit()
