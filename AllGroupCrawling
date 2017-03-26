@@ -20,7 +20,7 @@ for iteration in range(0,23):
             content[1].click()
         elif iteration == 2:
             content[2].click()
-        elif iteration == 21:
+        elif iteration == 22:
             content[4].click()
         else:
             content[3].click()
