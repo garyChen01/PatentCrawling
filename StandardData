@@ -1,0 +1,78 @@
+# -*- coding: UTF-8 -*-
+import xlwt
+from xlutils.copy import copy
+import xlrd
+from selenium import webdriver
+
+browser = webdriver.PhantomJS()
+browser.get('http://www.ttbz.org.cn/tb/tb/hyttpages.jsp')
+
+file = 'StandardData.xls'
+workbook = xlwt.Workbook()
+worksheet = workbook.add_sheet('mySheet')
+
+dict = {'标准名称':0,'标准状态':1,'标准编号':2,'中文标题':3,'英文标题':4,'国际标准分类号':5,
+        '中国标准分类号':6,'国民经济分类':7,'发布日期':8,'实施日期':9,'确认日期':10,
+        '废止日期':11,'中文主题词':12,'英文主题词':13,'起草人':14,'起草单位':15,'范围':16,
+        '主要技术内容':17,'引用标准':18,'采用标准':19,'代替标准':20,'被代替标准':21,
+        '是否包含专利信息':22,'专利信息内容':23,'标准文本':24,'备注':25,'团队名称':26}
+for k in dict.keys():
+    worksheet.write(0,dict.get(k),unicode(k,"utf-8"))
+row = 1
+for iteration in range(0,8): #团体页数跳转
+    if iteration != 0:
+        content = browser.find_elements_by_xpath('//div[@class="left"]/a')
+        if iteration == 1:
+            content[1].click()
+        elif iteration == 2:
+            content[2].click()
+        elif iteration == 7:
+            content[4].click()
+        else:
+            content[3].click()
+    hyd = browser.find_elements_by_xpath('//span[@class="hyd"]/a')
+    page = len(hyd)
+    for i in range(0,page): #团队页面上各个团队遍历
+        web = browser.find_elements_by_xpath('//span[@class="name"]/a')
+        groupName = web[i].text
+        web = browser.find_elements_by_xpath('//span[@class="hyd"]/a')
+        web[i].click()
+        normPage = browser.find_elements_by_xpath('//div[@class="left"]/a')
+        backNumber = 1
+        if len(normPage) > 0:
+            #worksheet.write(row,26,groupName)
+            normPage = normPage[len(normPage)-1].text.encode('utf-8')  #可能需要将normPage转换为int类型
+            normPage = int(normPage)
+            backNumber = normPage  #浏览器回退次数
+            for k in range(0,normPage):  #标准页面跳转
+                if k != 0:
+                    norm = browser.find_elements_by_xpath('//div[@class="left"]/a')
+                    if k < 3:
+                        norm[k].click()
+                    elif k == 3:
+                        norm[3].click()
+                    elif k < normPage-1:
+                        norm[3].click()
+                    else:
+                        norm[4].click()
+                normNumber = len(browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a'))
+                for ite in range(0,normNumber):  #标准页面拥有的标准数
+                    norm = browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a')
+                    norm[ite].click()
+                    normInform = browser.find_elements_by_xpath('//table[@style="line-height:30px;"]//td')
+                    normInf = len(normInform)
+                    for m in range(0,normInf): #标准信息页面
+                        norm = normInform[m].text.encode('utf-8')
+                        norm = norm.split(' ',1)
+                        if dict.get(norm[0]) != None:
+                            m = m + 1
+                            worksheet.write(row,dict.get(norm[0]),normInform[m].text)
+                            print normInform[m].text
+                    worksheet.write(row, 26, groupName)
+                    print row
+                    row = row + 1
+                    browser.back()
+        for k in range(0,backNumber):
+            browser.back()
+workbook.save(file)
+browser.quit()
