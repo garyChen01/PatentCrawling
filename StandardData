@@ -57,7 +57,8 @@ for iteration in range(0,8): #团体页数跳转
                         norm[4].click()
                 normNumber = len(browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a'))
                 for ite in range(0,normNumber):  #标准页面拥有的标准数
-                    norm = browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a')
+                    norm = browser.find_elements_by_xpath('//span[@style="width: 400px;font-size: 14px"]/a')
+                    worksheet.write(row,0,norm[ite].text)
                     norm[ite].click()
                     normInform = browser.find_elements_by_xpath('//table[@style="line-height:30px;"]//td')
                     normInf = len(normInform)
