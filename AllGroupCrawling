@@ -30,7 +30,7 @@ for iteration in range(0,23):
         web = browser.find_elements_by_xpath('//tr[@style="width:1060px;"]//a')
         web[i].click()
         content = browser.find_elements_by_xpath('//td[@align="left"]')
-        patentNumber = browser.find_elements_by_xpath('//div[@class="shttUl_bt ttxx_box3_bt"]/li')
+        patentNumber = browser.find_elements_by_xpath('//div[@class="shttUl_bt ttxx_box3_bt"]/li')  #当前页面不一定把所有的专利都显示出来，所以不能这样简单的计算专利数
         worksheet.write(row,0,len(patentNumber)-1)
         position = len(content)
         for j in range(1,position):
