@@ -1,0 +1,60 @@
+import xlrd
+from selenium import webdriver
+
+browser = webdriver.PhantomJS()
+browser.get('http://www.ttbz.org.cn/tb/tb/hyttpages.jsp')
+
+file = 'ActiveGroup.xls'
+workbook = xlwt.Workbook()
+worksheet = workbook.add_sheet('mySheet')
+
+dict = {'标准数':0,'社会团体代号':1,'团体名称':2,'统一社会信用代码/登记证号':3,'发证机关':4,'业务范围':5,'法定代表人':6,
+        '依托单位名称':7,'通讯地址':8,'活动地域':9,'邮编':10,'标准制定程序文件':11}
+for k in dict.keys():
+    worksheet.write(0,dict.get(k),unicode(k,"utf-8"))
+activePage =  browser.find_elements_by_xpath('//div[@class="left"]/a')
+activePage = activePage[len(activePage)-1].text.encode('utf-8')
+activePage = int(activePage)
+row = 1
+
+for iteration in range(0,activePage):
+    if iteration != 0:
+        content = browser.find_elements_by_xpath('//div[@class="left"]/a')
+        if iteration <= 3:
+            content[iteration].click()
+        elif iteration < activePage-1:
+            content[3].click()
+        else:
+            content[4].click()
+    hyd = browser.find_elements_by_xpath('//span[@class="hyd"]/a')
+    page = len(hyd)
+    for i in range(0,page):
+        hyd = browser.find_elements_by_xpath('//span[@class="hyd"]/a') #点击标准，进入标准页面，以获取该团体所拥有的标准数
+        hyd[i].click()
+        hydPage = browser.find_elements_by_xpath('//div[@class="left"]/a') #获取标准页面的页数，根据页数来计算标准总数
+        hydNumber = 0
+        if len(hydPage) > 0: #页面数大于0，则要切换页面以获取最后一个页面的标准数
+            hydPage = hydPage[len(hydPage) - 1].text.encode('utf-8')
+            hydPage = int(hydPage)
+            hyd = browser.find_elements_by_xpath('//div[@class="left"]/a')
+            hyd[len(hyd)-1].click()
+            norm = browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a')
+            hydNumber = (hydPage-1)*10+len(norm)
+            browser.back()
+        browser.back()
+        print hydNumber
+        web = browser.find_elements_by_xpath('//span[@class="name"]/a')
+        web[i].click()
+        content = browser.find_elements_by_xpath('//td[@align="left"]')
+        worksheet.write(row,0,hydNumber)
+        position = len(content)
+        for j in range(1,position):
+            worksheet.write(row, j, content[j-1].text)
+        content[position-1] = content[position-1].find_element_by_xpath('.//a')   #定位到//td[@dlign="left"]/a下
+        worksheet.write(row,position,content[position-1].get_attribute('href'))   #获取//td[@dlign="left"]/a的元素名为href的元素
+        browser.back()
+        print row
+        row = row + 1
+
+workbook.save(file)
+browser.quit()
