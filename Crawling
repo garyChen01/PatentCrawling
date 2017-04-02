@@ -1,0 +1,293 @@
+# -*- coding: utf-8 -*-
+import xlwt
+from selenium import webdriver
+import Tkinter as tk
+import threading
+from ttk import *
+
+def standardData():
+    browser = webdriver.PhantomJS()
+    browser.get('http://www.ttbz.org.cn/tb/tb/hyttpages.jsp')
+
+    workbook = xlwt.Workbook()
+    worksheet = workbook.add_sheet('mySheet')
+
+    dict = {'标准名称': 0, '标准状态': 1, '标准编号': 2, '中文标题': 3, '英文标题': 4, '国际标准分类号': 5,
+            '中国标准分类号': 6, '国民经济分类': 7, '发布日期': 8, '实施日期': 9, '确认日期': 10,
+            '废止日期': 11, '中文主题词': 12, '英文主题词': 13, '起草人': 14, '起草单位': 15, '范围': 16,
+            '主要技术内容': 17, '引用标准': 18, '采用标准': 19, '代替标准': 20, '被代替标准': 21,
+            '是否包含专利信息': 22, '专利信息内容': 23, '标准文本': 24, '备注': 25, '团队名称': 26}
+    for k in dict.keys():
+        worksheet.write(0, dict.get(k), unicode(k, "utf-8"))
+    row = 1
+    for iteration in range(0, 8):  # 团体页数跳转
+        if iteration != 0:
+            content = browser.find_elements_by_xpath('//div[@class="left"]/a')
+            if iteration == 1:
+                content[1].click()
+            elif iteration == 2:
+                content[2].click()
+            elif iteration == 7:
+                content[4].click()
+            else:
+                content[3].click()
+        hyd = browser.find_elements_by_xpath('//span[@class="hyd"]/a')
+        page = len(hyd)
+        for i in range(0, page):  # 团队页面上各个团队遍历
+            web = browser.find_elements_by_xpath('//span[@class="name"]/a')
+            groupName = web[i].text
+            web = browser.find_elements_by_xpath('//span[@class="hyd"]/a')
+            web[i].click()
+            normPage = browser.find_elements_by_xpath('//div[@class="left"]/a')
+            backNumber = 1
+            if len(normPage) > 0:
+                # worksheet.write(row,26,groupName)
+                normPage = normPage[len(normPage) - 1].text.encode('utf-8')
+                normPage = int(normPage)
+                backNumber = normPage  # 浏览器回退次数
+                for k in range(0, normPage):  # 标准页面跳转
+                    if k != 0:
+                        norm = browser.find_elements_by_xpath('//div[@class="left"]/a')
+                        if k < 3:
+                            norm[k].click()
+                        elif k == 3:
+                            norm[3].click()
+                        elif k < normPage - 1:
+                            norm[3].click()
+                        else:
+                            norm[4].click()
+                    normNumber = len(browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a'))
+                    for ite in range(0, normNumber):  # 标准页面拥有的标准数
+                        norm = browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a')
+                        norm[ite].click()
+                        normInform = browser.find_elements_by_xpath('//table[@style="line-height:30px;"]//td')
+                        normInf = len(normInform)
+                        for m in range(0, normInf):  # 标准信息页面
+                            norm = normInform[m].text.encode('utf-8')
+                            norm = norm.split(' ', 1)
+                            if dict.get(norm[0]) != None:
+                                m = m + 1
+                                worksheet.write(row, dict.get(norm[0]), normInform[m].text)
+                                print normInform[m].text
+                        worksheet.write(row, 26, groupName)
+                        str_obj.set('已爬取数据行数为：' + str(row))
+                        row = row + 1
+                        browser.back()
+            for k in range(0, backNumber):
+                browser.back()
+    workbook.save(u'标准信息.xls')
+    browser.quit()
+
+def publicizedGroup():
+    browser = webdriver.PhantomJS()
+    browser.get('http://www.ttbz.org.cn/tb/tb/listData.jsp')
+
+    workbook = xlwt.Workbook()
+    worksheet = workbook.add_sheet('mySheet')
+
+    dict = {'社会团体代号': 0, '团体名称': 1, '发证机关': 2, '活动地域': 3, '标准制定程序文件': 4, '组织架构设计文件': 5,
+            '知识产权管理制度': 6, '标准化管理文件': 7, '自我承诺声明': 8}  # 使用字典自动将属于该属性的元素匹配到固定位置
+    for k in dict.keys():
+        worksheet.write(0, dict.get(k), unicode(k, "utf-8"))
+
+    row = 1
+
+    content = browser.find_elements_by_xpath('//ul[@class="hover"]//a')
+    page = len(content)
+    for i in range(0, page):
+        web = browser.find_elements_by_xpath('//ul[@class="hover"]//a')
+        web[i].click()
+        content = browser.find_elements_by_xpath('//table[@width="100%"]//td')
+        position = len(content)
+        k = 0
+        for j in range(1, position):
+            con = content[j].text.encode('utf-8')  # content[j].text为'unicode'类型，无法与str类型对比，所以要将其转换为str类型
+            if dict.get(con) != None:
+                j = j + 1
+                try:  # 当href无法匹配到时会抛出异常，此时将content[j].text内容写入，否则将元素名为href的链接写入
+                    href = content[j].find_element_by_xpath('.//a')
+                    worksheet.write(row, k, href.get_attribute('href'))
+                except:
+                    worksheet.write(row, k, content[j].text)
+                k = k + 1
+        browser.back()
+        str_obj.set('已爬取数据行数为：' + str(row))
+        row = row + 1
+
+    workbook.save(u'公示团体.xls')
+    browser.quit()
+
+def activeGroup():
+    browser = webdriver.PhantomJS()
+    browser.get('http://www.ttbz.org.cn/tb/tb/hyttpages.jsp')
+
+    workbook = xlwt.Workbook()
+    worksheet = workbook.add_sheet('mySheet')
+
+    dict = {'标准数': 0, '社会团体代号': 1, '团体名称': 2, '统一社会信用代码/登记证号': 3, '发证机关': 4, '业务范围': 5, '法定代表人': 6,
+            '依托单位名称': 7, '通讯地址': 8, '活动地域': 9, '邮编': 10, '标准制定程序文件': 11}
+    for k in dict.keys():
+        worksheet.write(0, dict.get(k), unicode(k, "utf-8"))
+    activePage = browser.find_elements_by_xpath('//div[@class="left"]/a')
+    activePage = activePage[len(activePage) - 1].text.encode('utf-8')
+    activePage = int(activePage)
+    row = 1
+
+    for iteration in range(0, activePage):
+        if iteration != 0:
+            content = browser.find_elements_by_xpath('//div[@class="left"]/a')
+            if iteration <= 3:
+                content[iteration].click()
+            elif iteration < activePage - 1:
+                content[3].click()
+            else:
+                content[4].click()
+        hyd = browser.find_elements_by_xpath('//span[@class="hyd"]/a')
+        page = len(hyd)
+        for i in range(0, page):
+            hyd = browser.find_elements_by_xpath('//span[@class="hyd"]/a')  # 点击标准，进入标准页面，以获取该团体所拥有的标准数
+            hyd[i].click()
+            hydPage = browser.find_elements_by_xpath('//div[@class="left"]/a')  # 获取标准页面的页数，根据页数来计算标准总数
+            hydNumber = 0
+            if len(hydPage) > 0:  # 页面数大于0，则要切换页面以获取最后一个页面的标准数
+                hydPage = hydPage[len(hydPage) - 1].text.encode('utf-8')
+                hydPage = int(hydPage)
+                hyd = browser.find_elements_by_xpath('//div[@class="left"]/a')
+                hyd[len(hyd) - 1].click()
+                norm = browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a')
+                hydNumber = (hydPage - 1) * 10 + len(norm)
+                browser.back()
+            browser.back()
+            print hydNumber
+            web = browser.find_elements_by_xpath('//span[@class="name"]/a')
+            web[i].click()
+            content = browser.find_elements_by_xpath('//td[@align="left"]')
+            worksheet.write(row, 0, hydNumber)
+            position = len(content)
+            for j in range(1, position):
+                worksheet.write(row, j, content[j - 1].text)
+            content[position - 1] = content[position - 1].find_element_by_xpath('.//a')  # 定位到//td[@dlign="left"]/a下
+            worksheet.write(row, position,
+                            content[position - 1].get_attribute('href'))  # 获取//td[@dlign="left"]/a的元素名为href的元素
+            browser.back()
+            str_obj.set('已爬取数据行数为：'+str(row))
+            row = row + 1
+
+    workbook.save(u'活跃团体.xls')
+    browser.quit()
+
+def allGroup():
+    browser = webdriver.PhantomJS()
+    browser.get('http://www.ttbz.org.cn/tb/tb/shttlistData.jsp?type=&keyword=&sheng=')
+
+    workbook = xlwt.Workbook()
+    worksheet = workbook.add_sheet('mySheet')
+
+    dict = {'标准数': 0, '社会团体代号': 1, '团体名称': 2, '统一社会信用代码/登记证号': 3, '发证机关': 4, '业务范围': 5, '法定代表人': 6,
+            '依托单位名称': 7, '通讯地址': 8, '活动地域': 9, '邮编': 10, '标准制定程序文件': 11}
+    for k in dict.keys():
+        worksheet.write(0, dict.get(k), unicode(k, "utf-8"))
+    groupPage = browser.find_elements_by_xpath('//div[@class="left"]/a')
+    groupPage = groupPage[len(groupPage) - 1].text.encode('utf-8')
+    groupPage = int(groupPage)  # 平台团队页面总页数
+    row = 1
+    for iteration in range(0, groupPage):
+        if iteration != 0:
+            content = browser.find_elements_by_xpath('//div[@class="left"]/a')
+            if iteration <= 3:
+                content[iteration].click()
+            elif iteration < groupPage - 1:
+                content[3].click()
+            else:
+                content[4].click()
+        web = browser.find_elements_by_xpath('//tr[@style="width:1060px;"]//a')
+        page = len(web)
+        for i in range(0, page):
+            web = browser.find_elements_by_xpath('//tr[@style="width:1060px;"]//a')
+            web[i].click()
+            content = browser.find_elements_by_xpath('//td[@align="left"]')
+            position = len(content)
+            for j in range(1, position):
+                worksheet.write(row, j, content[j - 1].text)
+            content[position - 1] = content[position - 1].find_element_by_xpath('.//a')  # 定位到//td[@dlign="left"]/a下
+            worksheet.write(row, position,
+                            content[position - 1].get_attribute('href'))  # 获取//td[@dlign="left"]/a的元素名为href的元素
+            web = browser.find_element_by_xpath('//div[@class="shtt_btTop"]/a')
+            web.click()
+            hydPage = browser.find_elements_by_xpath('//div[@class="left"]/a')  # 获取标准页面的页数，根据页数来计算标准总数
+            hydNumber = 0
+            if len(hydPage) > 0:  # 页面数大于0，则要切换页面以获取最后一个页面的标准数
+                hydPage = hydPage[len(hydPage) - 1].text.encode('utf-8')
+                hydPage = int(hydPage)
+                hyd = browser.find_elements_by_xpath('//div[@class="left"]/a')
+                hyd[len(hyd) - 1].click()
+                norm = browser.find_elements_by_xpath('//span[@style="font-size: 14px"]/a')
+                hydNumber = (hydPage - 1) * 10 + len(norm)
+                browser.back()
+            browser.back()
+            browser.back()
+            worksheet.write(row, 0, hydNumber)
+            str_obj.set('已爬取数据行数为：' + str(row))
+            row = row + 1
+
+    workbook.save(u'所有团体.xls')
+    browser.quit()
+
+
+class Crawling(threading.Thread):
+
+    def __init__(self,clickObject):
+        self.clickObject = clickObject
+        threading.Thread.__init__(self)
+        self.thread_stop = False
+
+    def run(self):
+
+        if self.clickObject == "活跃团体":
+            activeGroup()
+        elif self.clickObject == "所有团体":
+            allGroup()
+        elif self.clickObject == "公示团体":
+            publicizedGroup()
+        elif self.clickObject == "标准数据":
+            standardData()
+        else:
+            str_obj.set("程序错误,请重新点击")
+            action.config(state="normal")
+            exit(0)
+        str_obj.set("爬取完成")
+        action.config(state="normal")
+    def stop(self):
+        self.thread_stop = True
+
+def clickMe():   # 当acction被点击时,该函数则生效
+    clickObject = numberChosen.get()
+    print clickObject
+    clickObject = clickObject.encode('utf-8')
+    print clickObject
+    action.config(state="disabled")
+    str_obj.set("爬取中")
+    thread = Crawling(clickObject)
+    thread.start()
+    thread.stop()
+
+if __name__ == '__main__':
+    win = tk.Tk()
+    win.title("全国团体标准平台数据爬取")  # 添加标题
+    #win.geometry('400x100+500+200')
+    Label(win, text="选择爬取内容").grid(column=0, row=0)  # 添加一个标签，并将其列设置为1，行设置为0
+    str_obj = tk.StringVar()
+    #str_obj.set("提示：程序所在目录应无相关文档，否则将出错")
+    Label(win, textvariable=str_obj).grid(column=0, row=2)
+    # 按钮
+    action = Button(win, text="Click Me!",
+                    command=clickMe)  # 创建一个按钮, text：显示按钮上面显示的文字, command：当这个按钮被点击之后会调用command函数
+    action.grid(column=1, row=1)  # 设置其在界面中出现的位置  column代表列   row 代表行
+
+    # 创建一个下拉列表
+    number = tk.StringVar()
+    numberChosen = Combobox(win, width=12, textvariable=number, state='readonly')
+    numberChosen['values'] = ("活跃团体", "所有团体", "公示团体", "标准数据")  # 设置下拉列表的值
+    numberChosen.grid(column=0, row=1)  # 设置其在界面中出现的位置  column代表列   row 代表行
+    numberChosen.current(0)  # 设置下拉列表默认显示的值，0为 numberChosen['values'] 的下标值
+    win.mainloop()  # 当调用mainloop()时,窗口才会显示出来
